@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ride Split</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F3EE; --surface:#FFFFFF; --ink:#20221F; --sub:#6D6F68;
+    --line:#E4E1D6; --accent:#D98E2B; --accent-ink:#3A2A08;
+    --owe:#B14A3A; --owed:#3C7A5C; --owe-bg:#F7E7E2; --owed-bg:#E4F0E8;
+    --radius:16px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#17181A; --surface:#1F2123; --ink:#ECEAE3; --sub:#9A9C93;
+      --line:#33352F; --accent:#E3A44B; --accent-ink:#1A1200;
+      --owe:#E27F6C; --owed:#6BC69A; --owe-bg:#3A241F; --owed-bg:#1E3128;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#17181A; --surface:#1F2123; --ink:#ECEAE3; --sub:#9A9C93;
+    --line:#33352F; --accent:#E3A44B; --accent-ink:#1A1200;
+    --owe:#E27F6C; --owed:#6BC69A; --owe-bg:#3A241F; --owed-bg:#1E3128;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Space Grotesk",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+    min-height:100%;
+  }
+  .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;}
+  .wrap{max-width:520px; margin:0 auto; padding:20px 16px 90px;}
+  header.top{padding:6px 4px 18px;}
+  header.top h1{font-size:22px; font-weight:700; margin:0 0 2px; letter-spacing:-.01em;}
+  header.top p{margin:0; color:var(--sub); font-size:13.5px;}
+  nav.tabs{
+    position:sticky; top:env(safe-area-inset-top,0px); z-index:5;
+    display:flex; gap:6px; background:var(--bg); padding:8px 0 12px; margin-bottom:4px;
+    overflow-x:auto;
+  }
+  nav.tabs button{
+    border:1px solid var(--line); background:var(--surface); color:var(--sub);
+    padding:8px 14px; border-radius:999px; font:inherit; font-size:13.5px; font-weight:600;
+    cursor:pointer; white-space:nowrap; transition:background .15s,color .15s,border-color .15s;
+  }
+  nav.tabs button.active{background:var(--ink); color:var(--bg); border-color:var(--ink);}
+  .card{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px; margin-bottom:12px;
+  }
+  .card h2{font-size:14px; margin:0 0 12px; font-weight:600;}
+  .row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px solid var(--line);}
+  .row:last-child{border-bottom:none;}
+  .balance-amt{font-weight:600; font-size:15px;}
+  .owed{color:var(--owed);} .owe{color:var(--owe);}
+  .pill{font-size:11.5px; padding:2px 8px; border-radius:999px; font-weight:600;}
+  .pill.owed{background:var(--owed-bg);} .pill.owe{background:var(--owe-bg);}
+  .settle-row{display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid var(--line);}
+  .settle-row:last-child{border-bottom:none;}
+  .settle-text{flex:1; font-size:14px; line-height:1.4;}
+  .settle-text b{font-weight:700;}
+  button.mini{
+    border:1px solid var(--line); background:transparent; color:var(--ink);
+    padding:6px 12px; border-radius:9px; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer;
+  }
+  button.mini:hover{border-color:var(--accent);}
+  button.primary{
+    width:100%; border:none; background:var(--ink); color:var(--bg);
+    padding:13px; border-radius:12px; font:inherit; font-size:14.5px; font-weight:700; cursor:pointer;
+    margin-top:6px;
+  }
+  button.primary:disabled{opacity:.4; cursor:not-allowed;}
+  button.ghost{
+    border:1px dashed var(--line); background:transparent; color:var(--sub);
+    padding:9px; border-radius:10px; font:inherit; font-size:13px; font-weight:600; width:100%; cursor:pointer;
+  }
+  label{display:block; font-size:12px; color:var(--sub); margin:12px 0 5px; font-weight:600;}
+  label:first-child{margin-top:0;}
+  input[type=text], input[type=date], input[type=number], select{
+    width:100%; padding:10px 11px; border-radius:10px; border:1px solid var(--line);
+    background:var(--bg); color:var(--ink); font:inherit; font-size:14px;
+  }
+  .chips{display:flex; flex-wrap:wrap; gap:7px; margin-top:4px;}
+  .chip{
+    border:1px solid var(--line); border-radius:999px; padding:6px 12px; font-size:13px;
+    cursor:pointer; user-select:none; background:var(--bg);
+  }
+  .chip.on{background:var(--accent); border-color:var(--accent); color:var(--accent-ink); font-weight:600;}
+  .chip.disabled{opacity:.35; pointer-events:none;}
+  .entry-block{border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px; position:relative;}
+  .entry-block .remove{position:absolute; top:10px; right:10px; background:none; border:none; color:var(--sub); font-size:13px; cursor:pointer;}
+  .empty{color:var(--sub); font-size:13.5px; text-align:center; padding:20px 4px;}
+  .hist-item{padding:10px 0; border-bottom:1px solid var(--line);}
+  .hist-item:last-child{border-bottom:none;}
+  .hist-top{display:flex; justify-content:space-between; font-size:13px; color:var(--sub); margin-bottom:4px;}
+  .hist-line{font-size:13.5px; margin:2px 0;}
+  .del{background:none; border:none; color:var(--owe); font-size:12px; cursor:pointer; padding:0;}
+  .roster-row{display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line);}
+  .roster-row:last-child{border-bottom:none;}
+  .add-person{display:flex; gap:8px; margin-top:10px;}
+  .add-person input{flex:1;}
+  .sync-dot{width:7px; height:7px; border-radius:50%; background:var(--owed); display:inline-block; margin-right:5px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>🚗 Ride Split</h1>
+    <p><span class="sync-dot"></span><span id="synctext">Loading…</span></p>
+  </header>
+  <nav class="tabs">
+    <button data-tab="overview" class="active">Overview</button>
+    <button data-tab="add">Log a ride</button>
+    <button data-tab="history">History</button>
+    <button data-tab="people">People</button>
+  </nav>
+  <div id="content"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBZzipjhPf9Dh1UDyDoArZRzWsc7339adE",
+  authDomain: "ride-split-d6ccd.firebaseapp.com",
+  projectId: "ride-split-d6ccd",
+  storageBucket: "ride-split-d6ccd.firebasestorage.app",
+  messagingSenderId: "134474509273",
+  appId: "1:134474509273:web:33d2909ee2ddf1fc7887c8"
+};
+const firebaseApp = initializeApp(firebaseConfig);
+const firestore = getFirestore(firebaseApp);
+
+let state = null;
+const DOC_PATH = "carpool/state";
+const DEFAULT_STATE = { people: [], tripCost: 180, driverWeight: 0.6, unit: "EGP", rides: [], payments: [], _rev: 0 };
+
+function shareFor(total, riderCount, driverWeight, driverCount){
+  driverCount = driverCount || 1;
+  if(riderCount <= 0 || driverCount <= 0) return {riderShare:0, driverReceive:0};
+  const riderShare = total / (riderCount + driverWeight*driverCount);
+  const driverReceive = (riderShare * riderCount) / driverCount;
+  return { riderShare, driverReceive };
+}
+
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+async function initDb(attempt){
+  attempt = attempt || 0;
+  const docRef = doc(firestore, DOC_PATH);
+  let snap, failed = false;
+  try{
+    snap = await getDoc(docRef);
+  }catch(e){
+    failed = true;
+  }
+  if(failed){
+    // Transient read failure — retry a few times before giving up, and NEVER
+    // treat a failed read as "no data yet" (that's what wiped data before).
+    if(attempt < 4){
+      document.getElementById('synctext').textContent = "Connecting…";
+      setTimeout(()=>initDb(attempt+1), 800);
+      return;
+    }
+    document.getElementById('synctext').textContent = "Couldn't load shared data — reload to try again";
+    if(!state){ state = { ...DEFAULT_STATE }; render(); }
+    return;
+  }
+  if(!snap.exists()){
+    // Confirmed: this doc genuinely has never been created before.
+    await setDoc(docRef, DEFAULT_STATE).catch(()=>{});
+    state = { ...DEFAULT_STATE };
+  } else {
+    state = { ...DEFAULT_STATE, ...snap.data() };
+  }
+  document.getElementById('synctext').textContent = "Synced with your group";
+  render();
+  onSnapshot(docRef, (snap)=>{
+    if(snap && snap.exists()){
+      const incoming = { ...DEFAULT_STATE, ...snap.data() };
+      if((incoming._rev||0) < (state?._rev||0)) return; // stale echo, ignore
+      state = incoming;
+      render();
+    }
+  }, (err)=>{
+    document.getElementById('synctext').textContent = "Sync error — reload to retry";
+  });
+}
+
+async function save(next){
+  next._rev = (state._rev||0) + 1;
+  state = next;
+  render();
+  try{
+    await setDoc(doc(firestore, DOC_PATH), next);
+    document.getElementById('synctext').textContent = "Synced with your group";
+  }catch(e){
+    document.getElementById('synctext').textContent = "Couldn't save — check your connection and try again";
+  }
+}
+
+// ---------- ledger: who owes whom, tracked per pair (not globally reshuffled) ----------
+function buildLedger(s){
+  const raw = {}; // raw[from][to] = amount from owes to
+  function add(from,to,amt){
+    if(!raw[from]) raw[from] = {};
+    raw[from][to] = (raw[from][to]||0) + amt;
+  }
+  s.rides.forEach(ride => {
+    const perDriverShare = ride.riderShare / ride.drivers.length;
+    ride.riders.forEach(r => {
+      ride.drivers.forEach(d => add(r, d, perDriverShare));
+    });
+  });
+  s.payments.forEach(p => add(p.from, p.to, -p.amount));
+
+  const people = s.people;
+  const pairs = [];
+  const bal = {}; people.forEach(p => bal[p] = 0);
+  for(let i=0; i<people.length; i++){
+    for(let j=i+1; j<people.length; j++){
+      const A = people[i], B = people[j];
+      const ab = (raw[A] && raw[A][B]) || 0;
+      const ba = (raw[B] && raw[B][A]) || 0;
+      const net = ab - ba;
+      if(net > 0.5){
+        pairs.push({from:A, to:B, amount:Math.round(net*100)/100});
+        bal[A] -= net; bal[B] += net;
+      } else if(net < -0.5){
+        pairs.push({from:B, to:A, amount:Math.round(-net*100)/100});
+        bal[B] -= (-net); bal[A] += (-net);
+      }
+    }
+  }
+  return { pairs, bal };
+}
+
+function fmt(n){ return state.unit + " " + (Math.round(n*100)/100).toLocaleString(); }
+
+// ---------- tabs ----------
+let activeTab = "overview";
+let selectedPerson = null;
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    activeTab = btn.dataset.tab;
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('active', b===btn));
+    render();
+  });
+});
+
+function render(){
+  if(!state) return;
+  const el = document.getElementById('content');
+  if(activeTab === 'overview') el.innerHTML = renderOverview();
+  else if(activeTab === 'add') el.innerHTML = renderAdd();
+  else if(activeTab === 'history') el.innerHTML = renderHistory();
+  else el.innerHTML = renderPeople();
+  wireEvents();
+}
+
+function renderOverview(){
+  if(state.people.length === 0){
+    return `<div class="card"><p class="empty">Add your group's people first, in the People tab.</p></div>`;
+  }
+  const { pairs, bal } = buildLedger(state);
+  let rows = state.people.map(p=>{
+    const amt = bal[p]||0;
+    const cls = amt > 0.5 ? 'owed' : amt < -0.5 ? 'owe' : '';
+    const label = amt > 0.5 ? 'is owed' : amt < -0.5 ? 'owes' : 'settled';
+    return `<div class="row"><span>${p}</span><span class="balance-amt ${cls} mono">${fmt(Math.abs(amt))} <span class="pill ${cls}">${label}</span></span></div>`;
+  }).join('');
+
+  if(!selectedPerson || !state.people.includes(selectedPerson)) selectedPerson = state.people[0];
+  const options = state.people.map(p=>`<option value="${p}" ${p===selectedPerson?'selected':''}>${p}</option>`).join('');
+  const owesList = pairs.filter(t=>t.from===selectedPerson);
+  const owedList = pairs.filter(t=>t.to===selectedPerson);
+
+  const owesHtml = owesList.length
+    ? owesList.map(t=>`<div class="settle-row">
+        <span class="settle-text">Owes <b>${t.to}</b> <span class="mono owe">${fmt(t.amount)}</span></span>
+        <button class="mini" data-pay-from="${t.from}" data-pay-to="${t.to}" data-pay-amt="${t.amount}">Mark paid</button>
+      </div>`).join('')
+    : `<p class="empty">Owes nobody right now.</p>`;
+  const owedHtml = owedList.length
+    ? owedList.map(t=>`<div class="settle-row">
+        <span class="settle-text"><b>${t.from}</b> owes <span class="mono owed">${fmt(t.amount)}</span></span>
+        <button class="mini" data-pay-from="${t.from}" data-pay-to="${t.to}" data-pay-amt="${t.amount}">Mark paid</button>
+      </div>`).join('')
+    : `<p class="empty">Nobody owes ${selectedPerson}.</p>`;
+
+  return `
+    <div class="card"><h2>Balances</h2>${rows}</div>
+    <div class="card">
+      <h2>Check a person</h2>
+      <select id="view-as">${options}</select>
+      <label>${selectedPerson} owes</label>
+      ${owesHtml}
+      <label>Owed to ${selectedPerson}</label>
+      ${owedHtml}
+    </div>
+  `;
+}
+
+let draftRide = null;
+function renderAdd(){
+  if(state.people.length < 2){
+    return `<div class="card"><p class="empty">Add at least two people first, in the People tab.</p></div>`;
+  }
+  if(!draftRide) draftRide = { drivers: [], excluded: [], costPerDriver: state.tripCost };
+
+  const driverChips = state.people.map(p=>{
+    const on = draftRide.drivers.includes(p);
+    return `<span class="chip ${on?'on':''}" data-role="driver" data-name="${p}">${p}</span>`;
+  }).join('');
+
+  const others = state.people.filter(p=>!draftRide.drivers.includes(p));
+  draftRide.excluded = draftRide.excluded.filter(p=>others.includes(p));
+  const riderChips = others.map(p=>{
+    const excluded = draftRide.excluded.includes(p);
+    return `<span class="chip ${excluded?'':'on'}" data-role="exclude" data-name="${p}">${p}${excluded?' (out today)':''}</span>`;
+  }).join('');
+
+  const riders = others.filter(p=>!draftRide.excluded.includes(p));
+  const driverCount = draftRide.drivers.length || 1;
+  const dayTotal = draftRide.costPerDriver * driverCount;
+  const { riderShare, driverReceive } = shareFor(dayTotal, riders.length, state.driverWeight, driverCount);
+  const preview = (riders.length>0 && draftRide.drivers.length>0)
+    ? `<div class="hist-line" style="margin-top:10px;">Day's total cost: <b class="mono">${fmt(dayTotal)}</b> (${draftRide.drivers.length} driver${draftRide.drivers.length>1?'s':''} × ${fmt(draftRide.costPerDriver)})<br>Each rider pays <b class="mono">${fmt(riderShare)}</b>, split ${draftRide.drivers.length>1? `across ${draftRide.drivers.length} drivers → <b class="mono">${fmt(riderShare/draftRide.drivers.length)}</b> to each` : `→ <b class="mono">${fmt(driverReceive)}</b> to the driver`}</div>`
+    : '';
+
+  return `
+    <div class="card">
+      <h2>Log today's ride</h2>
+      <label>Date</label>
+      <input type="date" id="ride-date" value="${new Date().toISOString().slice(0,10)}">
+      <label>Note (optional)</label>
+      <input type="text" id="ride-note" placeholder="e.g. morning car, different one back">
+      <label>Cost per driver's round trip</label>
+      <input type="number" min="0" step="0.5" class="mono" id="ride-total" value="${draftRide.costPerDriver}">
+      <label>Today's drivers</label>
+      <div class="chips">${driverChips}</div>
+      <label>Riders today${others.length ? ' (tap someone to mark them out for the day)':''}</label>
+      <div class="chips">${riderChips || '<span class="empty">everyone else is driving</span>'}</div>
+      ${preview}
+      <button class="primary" id="save-ride">Save ride</button>
+    </div>
+  `;
+}
+
+function renderHistory(){
+  const items = [];
+  state.rides.forEach(r=>{
+    items.push({type:'ride', date:r.date, data:r});
+  });
+  state.payments.forEach(p=>{
+    items.push({type:'payment', date:p.date, data:p});
+  });
+  items.sort((a,b)=> (b.date||'').localeCompare(a.date||'') || 0);
+  if(items.length===0) return `<div class="card"><p class="empty">No rides or payments logged yet.</p></div>`;
+  const html = items.map(item=>{
+    if(item.type==='ride'){
+      const r = item.data;
+      const costNote = r.drivers.length>1 ? ` · total ${fmt(r.total)} (${r.drivers.length}×${fmt(r.costPerDriver||r.total)})` : ` · total ${fmt(r.total)}`;
+      const line = `<div class="hist-line">🚘 <b>${r.drivers.join(' & ')}</b> drove${costNote} · ${r.riders.join(', ')||'—'} each paid <b class="mono">${fmt(r.riderShare)}</b></div>`;
+      return `<div class="hist-item"><div class="hist-top"><span>${r.date}${r.note? ' · '+r.note:''}</span><button class="del" data-del-ride="${r.id}">delete</button></div>${line}</div>`;
+    } else {
+      const p = item.data;
+      return `<div class="hist-item"><div class="hist-top"><span>${p.date} · payment</span><button class="del" data-del-payment="${p.id}">delete</button></div><div class="hist-line">💸 <b>${p.from}</b> paid <b>${p.to}</b> ${fmt(p.amount)}</div></div>`;
+    }
+  }).join('');
+  return `<div class="card"><h2>History</h2>${html}</div>`;
+}
+
+function renderPeople(){
+  const rows = state.people.map(p=>`<div class="roster-row"><span>${p}</span><button class="del" data-remove-person="${p}">remove</button></div>`).join('');
+  return `
+    <div class="card">
+      <h2>People</h2>
+      ${rows || '<p class="empty">Nobody added yet.</p>'}
+      <div class="add-person">
+        <input type="text" id="new-person" placeholder="Add a name">
+        <button class="mini" id="add-person-btn">Add</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Ride defaults</h2>
+      <label>Default cost per driver (one round trip)</label>
+      <input type="number" min="0" step="0.5" class="mono" id="tripcost-input" value="${state.tripCost}">
+      <label>Driver's share, as % of a rider's share</label>
+      <input type="number" min="0" max="100" step="5" class="mono" id="weight-input" value="${Math.round(state.driverWeight*100)}">
+      <p class="empty" style="text-align:left; padding:6px 0 0;">e.g. 60% means the driver pays 60% of what each rider pays, to account for wear on their car.</p>
+      <label>Currency / unit label</label>
+      <input type="text" id="unit-input" value="${state.unit}">
+      <button class="primary" id="save-settings">Save settings</button>
+    </div>
+  `;
+}
+
+function wireEvents(){
+  const viewAs = document.getElementById('view-as');
+  if(viewAs) viewAs.addEventListener('change', ()=>{ selectedPerson = viewAs.value; render(); });
+
+  document.querySelectorAll('[data-pay-from]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const payment = { id: uid(), from: btn.dataset.payFrom, to: btn.dataset.payTo,
+        amount: parseFloat(btn.dataset.payAmt), date: new Date().toISOString().slice(0,10) };
+      save({ ...state, payments: [...state.payments, payment] });
+    });
+  });
+
+  document.querySelectorAll('[data-role="driver"]').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      const name = chip.dataset.name;
+      if(draftRide.drivers.includes(name)) draftRide.drivers = draftRide.drivers.filter(d=>d!==name);
+      else draftRide.drivers.push(name);
+      draftRide.excluded = draftRide.excluded.filter(e=>e!==name);
+      render();
+    });
+  });
+  document.querySelectorAll('[data-role="exclude"]').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      const name = chip.dataset.name;
+      if(draftRide.excluded.includes(name)) draftRide.excluded = draftRide.excluded.filter(e=>e!==name);
+      else draftRide.excluded.push(name);
+      render();
+    });
+  });
+  const rideTotalInput = document.getElementById('ride-total');
+  if(rideTotalInput) rideTotalInput.addEventListener('change', ()=>{
+    draftRide.costPerDriver = parseFloat(rideTotalInput.value)||0;
+    render();
+  });
+
+  const saveRide = document.getElementById('save-ride');
+  if(saveRide) saveRide.addEventListener('click', ()=>{
+    const date = document.getElementById('ride-date').value || new Date().toISOString().slice(0,10);
+    const note = document.getElementById('ride-note').value.trim();
+    if(draftRide.drivers.length === 0){ alert('Pick at least one driver.'); return; }
+    const riders = state.people.filter(p=>!draftRide.drivers.includes(p) && !draftRide.excluded.includes(p));
+    if(riders.length === 0){ alert('There needs to be at least one rider.'); return; }
+    const total = draftRide.costPerDriver * draftRide.drivers.length;
+    const { riderShare, driverReceive } = shareFor(total, riders.length, state.driverWeight, draftRide.drivers.length);
+    const ride = { id: uid(), date, note, total, costPerDriver: draftRide.costPerDriver, drivers:[...draftRide.drivers], riders, riderShare, driverReceive };
+    draftRide = null;
+    save({ ...state, rides: [...state.rides, ride] });
+    activeTab = 'overview';
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('active', b.dataset.tab==='overview'));
+  });
+
+  document.querySelectorAll('[data-del-ride]').forEach(btn=>{
+    btn.addEventListener('click', ()=> save({ ...state, rides: state.rides.filter(r=>r.id!==btn.dataset.delRide) }));
+  });
+  document.querySelectorAll('[data-del-payment]').forEach(btn=>{
+    btn.addEventListener('click', ()=> save({ ...state, payments: state.payments.filter(p=>p.id!==btn.dataset.delPayment) }));
+  });
+
+  const addPersonBtn = document.getElementById('add-person-btn');
+  if(addPersonBtn) addPersonBtn.addEventListener('click', ()=>{
+    const inp = document.getElementById('new-person');
+    const name = inp.value.trim();
+    if(!name || state.people.includes(name)) return;
+    save({ ...state, people: [...state.people, name] });
+  });
+  document.querySelectorAll('[data-remove-person]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const name = btn.dataset.removePerson;
+      save({ ...state, people: state.people.filter(p=>p!==name) });
+    });
+  });
+  const saveSettings = document.getElementById('save-settings');
+  if(saveSettings) saveSettings.addEventListener('click', ()=>{
+    const tripCost = parseFloat(document.getElementById('tripcost-input').value)||0;
+    const weightPct = parseFloat(document.getElementById('weight-input').value);
+    const driverWeight = isNaN(weightPct) ? state.driverWeight : weightPct/100;
+    const unit = document.getElementById('unit-input').value.trim() || state.unit;
+    save({ ...state, tripCost, driverWeight, unit });
+  });
+}
+
+initDb();
+</script>
+</body>
+</html>
