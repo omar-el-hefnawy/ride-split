@@ -144,7 +144,11 @@ const DEFAULT_STATE = { people: [], tripCost: 180, driverWeight: 0.6, unit: "EGP
 function shareFor(total, riderCount, driverWeight, driverCount){
   driverCount = driverCount || 1;
   if(riderCount <= 0 || driverCount <= 0) return {riderShare:0, driverReceive:0};
-  const riderShare = total / (riderCount + driverWeight*driverCount);
+  // Driver's effective weight: starts at 90% with 1 rider per driver and falls toward the configured
+  // setting as riders-per-driver grows (never below the setting, never above 90%).
+  const ratio = riderCount / driverCount;
+  const effWeight = Math.max(driverWeight, Math.min(0.9, driverWeight + (1 - driverWeight) / ratio - 0.1));
+  const riderShare = total / (riderCount + effWeight*driverCount);
   const driverReceive = (riderShare * riderCount) / driverCount;
   return { riderShare, driverReceive };
 }
@@ -392,9 +396,9 @@ function renderPeople(){
       <h2>Ride defaults</h2>
       <label>Default cost per driver (one round trip)</label>
       <input type="number" min="0" step="0.5" class="mono" id="tripcost-input" value="${state.tripCost}">
-      <label>Driver's share, as % of a rider's share</label>
+      <label>Driver's share for large groups, as % of a rider's share</label>
       <input type="number" min="0" max="100" step="5" class="mono" id="weight-input" value="${Math.round(state.driverWeight*100)}">
-      <p class="empty" style="text-align:left; padding:6px 0 0;">e.g. 60% means the driver pays 60% of what each rider pays, to account for wear on their car.</p>
+      <p class="empty" style="text-align:left; padding:6px 0 0;">With many riders the driver pays this % of a rider's share (e.g. 60%, to account for wear on their car). With fewer riders per driver it rises automatically. With a 60% setting: 1 rider per driver = 90%, 2 per driver ≈ 70%, 3 ≈ 63%, 4 or more = 60%.</p>
       <label>Currency / unit label</label>
       <input type="text" id="unit-input" value="${state.unit}">
       <button class="primary" id="save-settings">Save settings</button>
